@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0C192C">
+  <meta name="description" content="SmartRoom environmental monitoring dashboard for ESP32-connected room sensors.">
+  <title>SmartRoom — Intelligent Room Monitoring</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <!-- Small inline icon library keeps the interface self-contained (no CDN or external assets). -->
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="i-room" viewBox="0 0 24 24"><path d="M3.5 10.3 12 3.5l8.5 6.8v9.2a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M9 20.5v-6h6v6M8 9.5h.01M12 9.5h.01M16 9.5h.01"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4.7 9a7.5 7.5 0 0 1 12.6-2.4L20 9M4 17v-5h5m10.3 3a7.5 7.5 0 0 1-12.6 2.4L4 15"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+    <symbol id="i-presence" viewBox="0 0 24 24"><circle cx="12" cy="7" r="3"/><path d="M6.2 20a5.8 5.8 0 0 1 11.6 0M3 9.2a9.3 9.3 0 0 1 0 5.6M21 9.2a9.3 9.3 0 0 0 0 5.6"/></symbol>
+    <symbol id="i-thermometer" viewBox="0 0 24 24"><path d="M14 14.8V5a3 3 0 0 0-6 0v9.8a5 5 0 1 0 6 0Z"/><path d="M11 11v6"/></symbol>
+    <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 3.2S5.7 10.3 5.7 14.7a6.3 6.3 0 0 0 12.6 0C18.3 10.3 12 3.2 12 3.2Z"/><path d="M9.4 15.4a2.7 2.7 0 0 0 2.7 2.7"/></symbol>
+    <symbol id="i-air" viewBox="0 0 24 24"><path d="M3.5 8h11a2.5 2.5 0 1 0-2.3-3.5M3.5 12h15a2.5 2.5 0 1 1-2.3 3.5M3.5 16h8a2.5 2.5 0 1 1-2.3 3.5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2M12 19.2v2M4.1 4.1l1.4 1.4m13 13 1.4 1.4M2.8 12h2m14.4 0h2M4.1 19.9l1.4-1.4m13-13 1.4-1.4"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7.5 18.5h10a3.5 3.5 0 0 0 .4-7 5.8 5.8 0 0 0-11-1.2 4.7 4.7 0 0 0 .6 8.2Z"/></symbol>
+    <symbol id="i-co2" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4.5"/><circle cx="17" cy="15.5" r="3"/><path d="M8 9.5v5m-1.7-1.3L8 15l1.7-1.8"/></symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2.8v3.1m6-3.1v3.1M9 18.1v3.1m6-3.1v3.1M2.8 9h3.1m-3.1 6h3.1m12.1-6h3.1m-3.1 6h3.1M10 10h4v4h-4z"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M3.2 8.7a13.3 13.3 0 0 1 17.6 0M6.5 12a8.3 8.3 0 0 1 11 0m-7.8 3.3a3.4 3.4 0 0 1 4.6 0M12 19h.01"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4L19 7"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#dashboard" aria-label="SmartRoom dashboard">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 36 36"><path d="M8 19.5 18 11l10 8.5v9H8z"/><path d="M14.5 28.5v-6h7v6"/><circle cx="18" cy="7" r="2"/><path d="M18 9v2m-6.8 3.1 4.5-4m9.1 4-4.5-4"/></svg>
+        </span>
+        <span class="brand-copy"><strong>SmartRoom</strong><small>INTELLIGENT ROOM<br>MONITORING</small></span>
+      </a>
+
+      <div class="nav-caption">WORKSPACE</div>
+      <nav class="side-nav">
+        <a class="nav-link is-active" href="#dashboard" aria-current="page" title="Dashboard">
+          <svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg>
+          <span class="nav-label">Dashboard</span>
+          <span class="nav-active-mark" aria-hidden="true"></span>
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-mode" aria-label="Current data mode">
+          <span class="sidebar-mode-dot" id="sidebarModeDot" aria-hidden="true"></span>
+          <span class="sidebar-mode-copy"><small>DATA MODE</small><strong id="sidebarMode">Demo preview</strong></span>
+          <span class="sidebar-mode-mark" aria-hidden="true">•••</span>
+        </div>
+        <div class="sidebar-note">
+          <span class="sidebar-note-icon"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg></span>
+          <span>Monitoring only<br><strong>Device control is not enabled</strong></span>
+        </div>
+        <div class="sidebar-footnote">SMARTROOM · LOCAL PROTOTYPE</div>
+      </div>
+    </aside>
+
+    <main class="main-content" id="dashboard">
+      <header class="topbar">
+        <div class="topbar-left">
+          <a class="mobile-brand" href="#dashboard" aria-label="SmartRoom dashboard">
+            <span class="brand-mark brand-mark-small" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M8 19.5 18 11l10 8.5v9H8z"/><path d="M14.5 28.5v-6h7v6"/><circle cx="18" cy="7" r="2"/><path d="M18 9v2m-6.8 3.1 4.5-4m9.1 4-4.5-4"/></svg></span>
+            <span><strong>SmartRoom</strong><small>Intelligent Room Monitoring</small></span>
+          </a>
+          <div class="topbar-room">
+            <span class="room-icon"><svg class="icon" aria-hidden="true"><use href="#i-room"></use></svg></span>
+            <span class="room-context"><strong>Room 01 — Main Lab / Office</strong><small>SmartRoom environmental console</small></span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="topbar-badges" aria-label="System state">
+            <span id="modeBadge" class="status-badge badge-demo"><span class="status-dot" aria-hidden="true"></span><span>DEMO DATA</span></span>
+            <span id="controllerBadge" class="status-badge badge-muted"><span class="status-dot" aria-hidden="true"></span><span>ESP32 · UNKNOWN</span></span>
+            <span id="streamBadge" class="status-badge badge-muted"><span class="status-dot" aria-hidden="true"></span><span>STREAM · WAITING</span></span>
+          </div>
+          <div class="topbar-updated">
+            <small>LAST UPDATED</small>
+            <strong id="lastUpdated">Demo dataset</strong>
+            <span id="timestampHint">Sample values · not measured</span>
+          </div>
+          <button id="refreshButton" class="icon-button refresh-button" type="button" title="Refresh sensor data" aria-label="Refresh sensor data">
+            <svg class="icon" aria-hidden="true"><use href="#i-refresh"></use></svg>
+          </button>
+          <div class="user-chip" aria-label="SmartRoom local prototype">
+            <span class="user-avatar" aria-hidden="true">SR</span>
+            <span class="user-meta"><strong>Tech Lead</strong><small>Prototype</small></span>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <section class="page-heading" aria-labelledby="pageTitle">
+          <div>
+            <div class="eyebrow">ROOM 01 <span>/</span> MONITORING</div>
+            <h1 id="pageTitle">Room Overview</h1>
+            <p>Monitor your room environment in real time.</p>
+          </div>
+          <div class="heading-trailing">
+            <span class="heading-live"><span class="live-dot" aria-hidden="true"></span><span id="headingFeedText">Preview data</span></span>
+          </div>
+        </section>
+
+        <div id="demoNotice" class="notice notice-demo" role="note">
+          <span class="notice-symbol" aria-hidden="true"><svg class="icon"><use href="#i-info"></use></svg></span>
+          <div class="notice-copy"><strong>Demo preview — sample readings</strong><p>No ESP32 or physical sensor connection is being reported. Switch to live mode in <code>script.js</code> when your endpoint is ready.</p></div>
+          <span class="notice-tag">SIMULATED</span>
+        </div>
+
+        <div id="connectionNotice" class="notice notice-connection" role="status" aria-live="polite" hidden>
+          <span class="notice-symbol" aria-hidden="true"><svg class="icon"><use href="#i-info"></use></svg></span>
+          <div class="notice-copy"><strong id="connectionNoticeTitle">Waiting for sensor data</strong><p id="connectionNoticeText">The dashboard will update when a valid response is received.</p></div>
+        </div>
+
+        <section class="occupancy-card" aria-labelledby="occupancyTitle">
+          <div class="occupancy-main">
+            <div class="presence-icon-wrap" id="presenceIconWrap" aria-hidden="true">
+              <svg class="icon"><use href="#i-presence"></use></svg>
+              <span class="presence-icon-dot"></span>
+            </div>
+            <div class="occupancy-copy">
+              <div class="card-overline"><span class="overline-label">ROOM STATUS</span><span class="overline-separator">·</span><span>LD2412 mmWave presence</span></div>
+              <div class="occupancy-title-row"><h2 id="occupancyTitle">Waiting for data</h2><span id="occupancyBadge" class="state-tag state-unknown">UNKNOWN</span></div>
+              <p id="occupancyDescription">Presence data unavailable until a valid sensor reading arrives.</p>
+              <div class="occupancy-meta">
+                <span class="meta-item"><svg class="icon" aria-hidden="true"><use href="#i-presence"></use></svg><span>Presence sensor</span></span>
+                <span class="meta-divider" aria-hidden="true"></span>
+                <span id="presenceAvailability" class="meta-status">Availability unknown</span>
+              </div>
+            </div>
+          </div>
+          <div class="occupancy-aside">
+            <div class="aside-heading"><span class="aside-icon"><svg class="icon" aria-hidden="true"><use href="#i-pulse"></use></svg></span><span>PRESENCE FEED</span></div>
+            <strong id="presenceFeedTitle">Awaiting sensor report</strong>
+            <p id="presenceFeedText">Missing presence data is kept separate from a confirmed empty room.</p>
+            <span id="occupancyFreshness" class="aside-footnote">No measurement received</span>
+          </div>
+        </section>
+
+        <section class="telemetry-section" aria-labelledby="telemetryTitle">
+          <div class="section-heading">
+            <div><h2 id="telemetryTitle">Environmental telemetry</h2><p>Current room conditions and their sensor sources</p></div>
+            <span id="readingsStatus" class="section-state"><span class="status-dot" aria-hidden="true"></span><span>Waiting for data</span></span>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card" id="temperatureCard" aria-labelledby="temperatureLabel">
+              <div class="metric-top"><div class="metric-heading"><span class="metric-icon icon-blue"><svg class="icon" aria-hidden="true"><use href="#i-thermometer"></use></svg></span><h3 id="temperatureLabel">TEMPERATURE</h3></div><span id="temperatureState" class="metric-state state-neutral">NO DATA</span></div>
+              <div class="metric-value-row"><span id="temperatureValue" class="metric-value">—</span><span id="temperatureUnit" class="metric-unit" hidden>°C</span></div>
+              <p id="temperatureDescription" class="metric-description">Waiting for an AHT21 reading.</p>
+              <div class="metric-footer"><span><span class="footer-dot"></span>Sensor: AHT21</span><span id="temperatureRange">Band 18–28 °C</span></div>
+            </article>
+
+            <article class="metric-card" id="humidityCard" aria-labelledby="humidityLabel">
+              <div class="metric-top"><div class="metric-heading"><span class="metric-icon icon-blue"><svg class="icon" aria-hidden="true"><use href="#i-droplet"></use></svg></span><h3 id="humidityLabel">HUMIDITY</h3></div><span id="humidityState" class="metric-state state-neutral">NO DATA</span></div>
+              <div class="metric-value-row"><span id="humidityValue" class="metric-value">—</span><span id="humidityUnit" class="metric-unit" hidden>%</span></div>
+              <p id="humidityDescription" class="metric-description">Waiting for an AHT21 reading.</p>
+              <div class="metric-footer"><span><span class="footer-dot"></span>Sensor: AHT21</span><span id="humidityRange">Band 30–65%</span></div>
+            </article>
+
+            <article class="metric-card metric-card-air" id="airQualityCard" aria-labelledby="airQualityLabel">
+              <div class="metric-top"><div class="metric-heading"><span class="metric-icon icon-green"><svg class="icon" aria-hidden="true"><use href="#i-air"></use></svg></span><h3 id="airQualityLabel">AIR QUALITY</h3></div><span id="airQualityState" class="metric-state state-neutral">NO DATA</span></div>
+              <div class="air-quality-value" id="airQualityValue">—</div>
+              <div class="air-level-row"><span id="airQualityDescription">Level mapping not configured</span><strong id="airQualityLevel">—</strong></div>
+              <div id="airQualityScale" class="air-scale" role="img" aria-label="Application-defined air quality level not available"><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="metric-footer"><span><span class="footer-dot"></span>Sensor: ENS160</span><span>App-level scale</span></div>
+            </article>
+
+            <article class="metric-card" id="lightCard" aria-labelledby="lightLabel">
+              <div class="metric-top"><div class="metric-heading"><span class="metric-icon icon-amber"><svg class="icon" aria-hidden="true"><use href="#i-sun"></use></svg></span><h3 id="lightLabel">ROOM LIGHT</h3></div><span id="lightState" class="metric-state state-neutral">NO DATA</span></div>
+              <div class="metric-value-row"><span id="lightValue" class="metric-value">—</span><span id="lightUnit" class="metric-unit" hidden>lux</span></div>
+              <p id="lightDescription" class="metric-description">Waiting for an OPT3004 reading.</p>
+              <div class="metric-footer"><span><span class="footer-dot"></span>Sensor: OPT3004</span><span>Illuminance</span></div>
+            </article>
+
+            <article class="metric-card" id="tvocCard" aria-labelledby="tvocLabel">
+              <div class="metric-top"><div class="metric-heading"><span class="metric-icon icon-violet"><svg class="icon" aria-hidden="true"><use href="#i-cloud"></use></svg></span><h3 id="tvocLabel">VOC LEVEL</h3></div><span id="tvocState" class="metric-state state-neutral">NO DATA</span></div>
+              <div class="metric-value-row"><span id="tvocValue" class="metric-value">—</span><span id="tvocUnit" class="metric-unit" hidden>ppb</span></div>
+              <p id="tvocDescription" class="metric-description">TVOC is an aggregate sensor indicator, not gas identification.</p>
+              <div class="metric-footer"><span><span class="footer-dot"></span>Sensor: ENS160</span><span>TVOC estimate</span></div>
+            </article>
+
+            <article class="metric-card" id="eco2Card" aria-labelledby="eco2Label">
+              <div class="metric-top"><div class="metric-heading"><span class="metric-icon icon-slate"><svg class="icon" aria-hidden="true"><use href="#i-co2"></use></svg></span><h3 id="eco2Label">CO₂-EQUIVALENT</h3></div><span id="eco2State" class="metric-state state-neutral">NO DATA</span></div>
+              <div class="metric-value-row"><span id="eco2Value" class="metric-value">—</span><span id="eco2Unit" class="metric-unit" hidden>ppm</span></div>
+              <p id="eco2Description" class="metric-description">ENS160 eCO₂ is an estimate, not a direct CO₂ measurement.</p>
+              <div class="metric-footer"><span><span class="footer-dot"></span>Sensor: ENS160</span><span>eCO₂ estimate</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="sensor-section" aria-labelledby="sensorTitle">
+          <div class="section-heading section-heading-compact">
+            <div><h2 id="sensorTitle">Integrated Sensor Status</h2><p>Availability comes from firmware-reported sensor health.</p></div>
+            <span id="sensorSummary" class="minor-status">Independent status not verified</span>
+          </div>
+          <div class="sensor-grid">
+            <article class="sensor-card" data-sensor-card="ld2412">
+              <span class="sensor-icon icon-blue"><svg class="icon" aria-hidden="true"><use href="#i-presence"></use></svg></span>
+              <div class="sensor-card-copy"><div class="sensor-name-row"><h3>LD2412</h3><span id="sensorStatusLd2412" class="sensor-status state-neutral">UNKNOWN</span></div><p>Human presence</p><small id="sensorLastLd2412">Health not reported</small></div>
+            </article>
+            <article class="sensor-card" data-sensor-card="aht21">
+              <span class="sensor-icon icon-blue"><svg class="icon" aria-hidden="true"><use href="#i-thermometer"></use></svg></span>
+              <div class="sensor-card-copy"><div class="sensor-name-row"><h3>AHT21</h3><span id="sensorStatusAht21" class="sensor-status state-neutral">UNKNOWN</span></div><p>Temperature &amp; humidity</p><small id="sensorLastAht21">Health not reported</small></div>
+            </article>
+            <article class="sensor-card" data-sensor-card="ens160">
+              <span class="sensor-icon icon-green"><svg class="icon" aria-hidden="true"><use href="#i-air"></use></svg></span>
+              <div class="sensor-card-copy"><div class="sensor-name-row"><h3>ENS160</h3><span id="sensorStatusEns160" class="sensor-status state-neutral">UNKNOWN</span></div><p>Air quality, TVOC &amp; eCO₂</p><small id="sensorLastEns160">Health not reported</small></div>
+            </article>
+            <article class="sensor-card" data-sensor-card="opt3004">
+              <span class="sensor-icon icon-amber"><svg class="icon" aria-hidden="true"><use href="#i-sun"></use></svg></span>
+              <div class="sensor-card-copy"><div class="sensor-name-row"><h3>OPT3004</h3><span id="sensorStatusOpt3004" class="sensor-status state-neutral">UNKNOWN</span></div><p>Ambient light</p><small id="sensorLastOpt3004">Health not reported</small></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="system-section" aria-labelledby="systemTitle">
+          <div class="system-section-heading">
+            <div class="system-title-wrap"><span class="system-title-icon"><svg class="icon" aria-hidden="true"><use href="#i-chip"></use></svg></span><div><h2 id="systemTitle">System Diagnostics &amp; Gateway Telemetry</h2><p>ESP32 connection and incoming sensor-data freshness</p></div></div>
+            <span id="systemHeartbeat" class="heartbeat-state"><span class="status-dot" aria-hidden="true"></span><span>Awaiting data</span></span>
+          </div>
+          <div class="diagnostic-grid">
+            <div class="diagnostic-item"><span class="diagnostic-label">ESP32 CONTROLLER</span><strong id="diagController" class="diagnostic-value">Unknown</strong><small id="diagControllerNote">No device response yet</small></div>
+            <div class="diagnostic-item"><span class="diagnostic-label">WI-FI</span><strong id="diagWifi" class="diagnostic-value">Unknown</strong><small id="diagWifiNote">Not reported by firmware</small></div>
+            <div class="diagnostic-item"><span class="diagnostic-label">DATA STREAM</span><strong id="diagStream" class="diagnostic-value">Waiting</strong><small id="diagStreamNote">No valid response yet</small></div>
+            <div class="diagnostic-item"><span class="diagnostic-label">DEVICE ID</span><strong id="diagDeviceId" class="diagnostic-value diagnostic-mono">Not available</strong><small>Reported by firmware</small></div>
+            <div class="diagnostic-item"><span class="diagnostic-label">FIRMWARE</span><strong id="diagFirmware" class="diagnostic-value">Not available</strong><small>Reported by firmware</small></div>
+            <div class="diagnostic-item"><span class="diagnostic-label">LAST READING</span><strong id="diagLastReading" class="diagnostic-value">Not received</strong><small id="diagTimestampSource">Measurement time unavailable</small></div>
+          </div>
+        </section>
+
+        <div class="data-note"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg><p><strong>Sensor interpretation:</strong> TVOC is an aggregate VOC indicator, not gas-leak detection. ENS160 eCO₂ is an estimate, not a direct reading from a dedicated CO₂ sensor. Room-condition bands are application-defined and configurable.</p></div>
+        <footer class="page-footer"><span>SmartRoom Monitoring System · Local prototype</span><span>Monitoring only <i aria-hidden="true">·</i> No automated device control</span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
